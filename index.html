@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>2026 School Supply Shopping List</title>
+<style>
+  :root {
+    --bg: #f5f6f8;
+    --card: #ffffff;
+    --ink: #1f2733;
+    --muted: #6b7683;
+    --line: #e3e7ec;
+    --accent: #2f6fed;
+    --accent-soft: #eaf1ff;
+    --ok: #2f9e58;
+    --shadow: 0 1px 2px rgba(16,24,40,.06), 0 1px 3px rgba(16,24,40,.1);
+
+    --g-1st: #e8583f;
+    --g-3rd: #c8791a;
+    --g-5th: #3f9d4f;
+    --g-8th: #2f7fd1;
+    --g-11th: #8e44ad;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  .wrap { max-width: 940px; margin: 0 auto; padding: 20px max(16px, env(safe-area-inset-right)) 80px max(16px, env(safe-area-inset-left)); }
+
+  header.page { padding: 8px 2px 14px; }
+  header.page h1 { font-size: 1.55rem; margin: 0 0 4px; letter-spacing: -.01em; }
+  header.page .sub { color: var(--muted); font-size: .95rem; margin: 0; }
+  header.page .tip {
+    margin-top: 10px; font-size: .85rem; color: var(--muted);
+    background: var(--accent-soft); border: 1px solid #d6e4ff; color: #274b8f;
+    padding: 8px 11px; border-radius: 10px;
+  }
+
+  /* Toolbar */
+  .toolbar {
+    position: sticky; top: 0; z-index: 20;
+    background: rgba(245,246,248,.92);
+    backdrop-filter: saturate(1.2) blur(8px);
+    -webkit-backdrop-filter: saturate(1.2) blur(8px);
+    padding: 10px 0 8px; margin-bottom: 8px;
+    border-bottom: 1px solid var(--line);
+  }
+  .progress-row { display: flex; align-items: center; gap: 12px; margin-bottom: 9px; }
+  .bar { flex: 1; height: 10px; background: #e6e9ee; border-radius: 999px; overflow: hidden; }
+  .bar > span { display: block; height: 100%; width: 0%; background: var(--ok); border-radius: 999px; transition: width .25s ease; }
+  .progress-text { font-size: .85rem; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .progress-text b { color: var(--ink); }
+
+  .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+  .controls .label { font-size: .78rem; color: var(--muted); margin-right: 2px; text-transform: uppercase; letter-spacing: .04em; }
+  .chip {
+    font: inherit; font-size: .82rem; cursor: pointer; touch-action: manipulation;
+    border: 1px solid var(--line); background: var(--card); color: var(--ink);
+    padding: 5px 11px; border-radius: 999px; line-height: 1; transition: all .12s ease;
+  }
+  .chip:hover { border-color: #c4ccd6; }
+  .chip[data-grade].active { color: #fff; border-color: transparent; }
+  .chip[data-grade="1st"].active { background: var(--g-1st); }
+  .chip[data-grade="3rd"].active { background: var(--g-3rd); }
+  .chip[data-grade="5th"].active { background: var(--g-5th); }
+  .chip[data-grade="8th"].active { background: var(--g-8th); }
+  .chip[data-grade="11th"].active { background: var(--g-11th); }
+  .chip.all.active { background: var(--ink); color: #fff; border-color: transparent; }
+  .spacer { flex: 1; }
+  .btn {
+    font: inherit; font-size: .82rem; cursor: pointer; color: var(--muted); touch-action: manipulation;
+    border: 1px solid var(--line); background: var(--card);
+    padding: 5px 10px; border-radius: 8px;
+  }
+  .btn:hover { color: var(--ink); border-color: #c4ccd6; }
+
+  /* Category */
+  .category { background: var(--card); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); margin-bottom: 14px; overflow: hidden; }
+  .cat-head { display: flex; align-items: center; gap: 10px; padding: 13px 16px; cursor: pointer; user-select: none; }
+  .cat-head:hover { background: #fafbfc; }
+  .cat-accent { width: 8px; height: 22px; border-radius: 4px; background: var(--accent); flex: none; }
+  .cat-title { font-size: 1.05rem; font-weight: 650; margin: 0; }
+  .cat-count { font-size: .8rem; color: var(--muted); font-weight: 500; }
+  .chevron { margin-left: auto; color: var(--muted); transition: transform .18s ease; font-size: .9rem; }
+  .category.collapsed .chevron { transform: rotate(-90deg); }
+  .category.collapsed .cat-body { display: none; }
+  .cat-body { border-top: 1px solid var(--line); }
+
+  /* Item row */
+  .item { display: flex; gap: 12px; padding: 12px 16px; border-bottom: 1px solid #eef1f4; }
+  .item:last-child { border-bottom: 0; }
+  .item.checked { background: #f6faf7; }
+  .item.checked .item-name { color: var(--muted); text-decoration: line-through; }
+  .item-check { flex: none; padding-top: 1px; }
+  .item-check input { width: 22px; height: 22px; cursor: pointer; accent-color: var(--ok); touch-action: manipulation; }
+  .item-main { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .item-top { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  .qty { flex: none; font-size: .78rem; font-weight: 700; color: #274b8f; background: var(--accent-soft); border: 1px solid #d6e4ff; padding: 1px 8px; border-radius: 999px; white-space: nowrap; }
+  .item-name { font-weight: 550; }
+  .item-spec { font-size: .82rem; color: var(--muted); margin-top: 1px; }
+  .tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+  .tag { font-size: .7rem; font-weight: 700; color: #fff; padding: 2px 7px; border-radius: 999px; letter-spacing: .02em; }
+  .tag.g-1st { background: var(--g-1st); }
+  .tag.g-3rd { background: var(--g-3rd); }
+  .tag.g-5th { background: var(--g-5th); }
+  .tag.g-8th { background: var(--g-8th); }
+  .tag.g-11th { background: var(--g-11th); }
+  .breakdown { font-style: italic; font-size: .82rem; color: var(--muted); margin-top: 6px; }
+  .note-input { margin-top: 8px; width: 100%; font: inherit; font-size: 16px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: #fcfcfd; color: var(--ink); }
+  .note-input:focus { outline: none; border-color: var(--accent); background: #fff; }
+  .note-input.filled { border-color: #cfe0c8; background: #fbfdf9; }
+
+  .item.hidden, .category.hidden { display: none; }
+
+  /* Reference section styling */
+  .category.reference .cat-accent { background: #9aa4b0; }
+  .category.reference { background: #fbfbfc; }
+  .category.reference .item.checked { background: #f2f4f6; }
+  .ref-banner { font-size: .82rem; color: var(--muted); padding: 10px 16px; border-top: 1px solid var(--line); background: #f7f8fa; }
+
+  footer.page { color: var(--muted); font-size: .8rem; text-align: center; margin-top: 18px; padding: 0 8px; }
+  .empty { text-align: center; color: var(--muted); padding: 30px; display: none; }
+  .empty.show { display: block; }
+
+  @media (max-width: 560px) {
+    .wrap { padding: 16px 12px 72px; }
+    header.page h1 { font-size: 1.3rem; }
+    header.page .sub { font-size: .9rem; }
+    header.page .tip { font-size: .82rem; }
+    .progress-text { font-size: .8rem; }
+
+    /* Bigger, easier tap targets */
+    .controls { gap: 8px; }
+    .controls .label { width: 100%; margin: 0 0 2px; }
+    .chip, .btn { padding: 9px 14px; min-height: 40px; font-size: .9rem; }
+    .spacer { flex-basis: 100%; height: 0; }
+
+    .cat-head { padding: 15px 14px; }
+    .item { padding: 14px; gap: 14px; }
+    .item-check { padding-top: 2px; }
+    .item-check input { width: 26px; height: 26px; }
+    .tag { font-size: .72rem; padding: 3px 8px; }
+    .breakdown { font-size: .84rem; }
+  }
+
+  @media print {
+    .toolbar, .btn, .tip, .note-input { display: none !important; }
+    .category, .item { break-inside: avoid; box-shadow: none; }
+    .category.collapsed .cat-body { display: block !important; }
+    .item.hidden, .category.hidden { display: flex !important; }
+    .category.hidden { display: block !important; }
+    body { background: #fff; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="page">
+    <h1>2026 School Supply Shopping List</h1>
+    <p class="sub">Consolidated for 5 students &mdash; Grades 1, 3, 5, 8 &amp; 11 (Boggs)</p>
+    <p class="tip">Shop the whole trip at once, then tap a single grade filter to sort each child&rsquo;s pile afterward. Check-offs and notes save automatically in this browser.</p>
+  </header>
+
+  <div class="toolbar">
+    <div class="progress-row">
+      <div class="bar"><span id="barFill"></span></div>
+      <div class="progress-text"><b id="pDone">0</b> / <b id="pTotal">0</b> items <span id="pPct"></span></div>
+    </div>
+    <div class="controls">
+      <span class="label">Grade</span>
+      <button class="chip all active" data-all="1" type="button">All</button>
+      <button class="chip" data-grade="1st" type="button">1st</button>
+      <button class="chip" data-grade="3rd" type="button">3rd</button>
+      <button class="chip" data-grade="5th" type="button">5th</button>
+      <button class="chip" data-grade="8th" type="button">8th</button>
+      <button class="chip" data-grade="11th" type="button">11th</button>
+      <span class="spacer"></span>
+      <button class="btn" id="expandAll" type="button">Expand all</button>
+      <button class="btn" id="collapseAll" type="button">Collapse all</button>
+      <button class="btn" id="resetAll" type="button">Reset</button>
+    </div>
+  </div>
+
+  <div id="list"></div>
+  <div class="empty" id="emptyMsg">No items match the selected grade filter.</div>
+
+  <footer class="page">
+    Library-donation titles were selected for last name starting with <b>B</b> (Boggs). The 8th-grade list follows the standard 8th-grade track. Quantities marked &ldquo;as needed / plenty / varies&rdquo; are open-ended per the school&rsquo;s list.
+  </footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var GRADES = ["1st", "3rd", "5th", "8th", "11th"];
+
+  var DATA = [
+    { name: "Folders", items: [
+      { name: "2-pocket folder \u2014 any color except blue, green, or yellow", spec: "Personal use \u2014 label with student name", total: "1", grades: { "1st": "1" } },
+      { name: "Blue plastic folder with prongs", spec: "3rd & 5th require 5-Star brand", total: "7", grades: { "1st": "1", "3rd": "1 (5-Star)", "5th": "1 (5-Star)", "8th": "2 (Memory Work)", "11th": "2 (Memory Work)" } },
+      { name: "Green folder with prongs", spec: "5-Star brand", total: "1", grades: { "1st": "1" } },
+      { name: "Red folder with prongs", spec: "1st requires 5-Star brand", total: "2", grades: { "1st": "1 (5-Star)", "8th": "1 (Literature)" } },
+      { name: "Purple plastic folder with prongs", spec: "5-Star brand", total: "2", grades: { "3rd": "1", "5th": "1" } },
+      { name: "Black plastic folder with prongs", total: "4", grades: { "3rd": "2 (2-pocket)", "5th": "1", "8th": "1 (Greek)" } },
+      { name: "Yellow plastic folder with prongs", total: "3", grades: { "3rd": "2 (2-pocket)", "5th": "1" } },
+      { name: "White plastic folder with prongs", total: "7", grades: { "3rd": "1 (2-pocket)", "5th": "1", "8th": "3 (Composition 8)", "11th": "2 (Research)" } },
+      { name: "Orange plastic folder with prongs", total: "1", grades: { "3rd": "1 (2-pocket)" } },
+      { name: "Folder with brads", total: "2", grades: { "8th": "1 (US History I)", "11th": "1 (Leadership)" } },
+      { name: "Plain folder (no prongs)", total: "4", grades: { "8th": "3 (Catechism, Logic, Bible)", "11th": "1 (Bible)" } },
+      { name: "Fun folder of student's choice", spec: "For graded work & drawings", total: "1", grades: { "3rd": "1" } }
+    ]},
+    { name: "Binders & Dividers", items: [
+      { name: "Green 1-inch binder", total: "2", grades: { "3rd": "1 (Durable)", "5th": "1 (Math 5)" } },
+      { name: "1-inch 3-ring binder (any color)", total: "1", grades: { "8th": "1 (Pre-Algebra)" } },
+      { name: "Dividers (5-tab / 5-pack)", total: "4 packs", grades: { "3rd": "2 packs", "5th": "1 (Math 5)", "8th": "1 (Pre-Algebra)" } }
+    ]},
+    { name: "Notebooks & Paper", items: [
+      { name: "Composition notebooks (college-ruled)", spec: "College rule only; 3rd wants 80+ pages", total: "10", grades: { "1st": "2", "3rd": "3", "5th": "5" } },
+      { name: "Spiral notebooks", spec: "Some 8th classes allow a binder section instead; 11th Leadership can be composition or spiral", total: "11", grades: { "8th": "7 (US Hist 2, Logic 1, Lit 1, Greek 1, Bible 2)", "11th": "4 (Leadership 1, Lit 1, Bible 2)" } },
+      { name: "Loose-leaf notebook paper (college-ruled)", spec: "5th: +1 optional pack for home; 8th & 11th: keep extra at home", total: "5+ packs", grades: { "5th": "2 packs", "8th": "3 packs", "11th": "as needed" } },
+      { name: "Graph paper", total: "1 pack", grades: { "8th": "1 pack" } }
+    ]},
+    { name: "Pencils & Pens", items: [
+      { name: "Wooden pencils (Ticonderoga)", spec: "8th & 11th: keep extras at school and home", total: "36+", grades: { "1st": "24 (sharpened)", "3rd": "12", "8th": "extra", "11th": "plenty" } },
+      { name: "Mechanical pencils (0.7 mm)", spec: "3rd list says 7 mm \u2014 likely 0.7 mm", total: "2 packs", grades: { "3rd": "1 pack", "5th": "any count" } },
+      { name: "Black pens", total: "2", grades: { "5th": "2" } },
+      { name: "Red pens", total: "3", grades: { "5th": "2", "8th": "1 (everyday \u2014 Pre-Algebra)" } },
+      { name: "Pens (assorted)", total: "plenty", grades: { "11th": "plenty" } }
+    ]},
+    { name: "Erasers & Sharpeners", items: [
+      { name: "Erasers (block / pink)", total: "1+ pack", grades: { "1st": "1 pack", "8th": "as needed" } },
+      { name: "Pencil-top erasers (caps)", total: "2 packs", grades: { "3rd": "1 pack", "5th": "1 pack" } },
+      { name: "Handheld pencil sharpener (screw-lid)", total: "1", grades: { "1st": "1" } }
+    ]},
+    { name: "Art & Markers", items: [
+      { name: "Colored pencils", total: "5 packs", grades: { "1st": "2 packs of 24", "3rd": "1", "5th": "any count", "8th": "1" } },
+      { name: "Washable markers (12-count)", total: "2", grades: { "1st": "2" } },
+      { name: "Dry erase markers", total: "2", grades: { "1st": "2" } },
+      { name: "Highlighter", total: "1", grades: { "3rd": "1" } },
+      { name: "Sketchbook", spec: "5th: ~8\u00bd \u00d7 11 for Drawing class", total: "2", grades: { "3rd": "1", "5th": "1" } },
+      { name: "Sketch pencils", spec: "Optional for 5th", total: "2", grades: { "3rd": "1 set", "5th": "1 set (optional)" } }
+    ]},
+    { name: "Glue & Scissors", items: [
+      { name: "Glue sticks", total: "7\u20138", grades: { "1st": "2 (two-pack)", "3rd": "3\u20134", "5th": "2 (two-pack)", "8th": "as needed" } },
+      { name: "Scissors", total: "3", grades: { "1st": "1", "5th": "1", "8th": "1 (US History I)" } }
+    ]},
+    { name: "Math Tools", items: [
+      { name: "Calculator", spec: "5th: standard (Math 5); 8th: scientific \u2014 TI-30XIIS", total: "2", grades: { "5th": "1", "8th": "1 (scientific)" } },
+      { name: "Ruler", spec: "5th: wooden, inches & cm", total: "2", grades: { "5th": "1", "8th": "1" } },
+      { name: "Protractor", total: "1", grades: { "5th": "1 (Math 5)" } }
+    ]},
+    { name: "Cases, Tabs & Covers", items: [
+      { name: "Pencil box / pouch", spec: "1st: 2 boxes (1 pencils+sharpener+erasers, 1 colored pencils+markers); 3rd & 5th prefer bags/pouches", total: "4", grades: { "1st": "2 boxes", "3rd": "1", "5th": "1 pouch" } },
+      { name: "Post-it Durable Tabs (1 in)", total: "2", grades: { "1st": "1", "5th": "1" } },
+      { name: "Textbook cover", spec: "h 9 in \u00d7 w 8.5 in \u00d7 d 1.5 in", total: "1", grades: { "8th": "1" } }
+    ]},
+    { name: "Apparel", items: [
+      { name: "Orange T-shirt", spec: "Keep at home for Bethel events", total: "1", grades: { "1st": "1" } },
+      { name: "Green T-shirt", spec: "Keep at home for Bethel events", total: "1", grades: { "3rd": "1" } },
+      { name: "Purple T-shirt", spec: "Keep at home for Bethel events", total: "1", grades: { "5th": "1" } }
+    ]},
+    { name: "Books", items: [
+      { name: "Personal Bible", spec: "5th: New Living Translation (Old & New Testament)", total: "3", grades: { "5th": "1 (NLT)", "8th": "1", "11th": "1" } },
+      { name: "The Adventures of Unc' Billy Possum", spec: "Classroom library donation (last name A\u2013B)", total: "1", grades: { "1st": "1" } },
+      { name: "Nate the Great Goes Undercover", spec: "Classroom library donation (last name A\u2013B)", total: "1", grades: { "1st": "1" } },
+      { name: "The World According to Humphrey", spec: "Classroom library donation (last name A\u2013B)", total: "1", grades: { "3rd": "1" } },
+      { name: "From the Mixed-Up Files of Mrs. Basil E. Frankweiler", spec: "Classroom library donation (last name A\u2013K)", total: "1", grades: { "5th": "1" } },
+      { name: "Across Five Aprils", total: "1", grades: { "8th": "1" } },
+      { name: "Poetry & Short Stories: American Literature", total: "1", grades: { "8th": "1" } },
+      { name: "The Diary of a Young Girl", total: "1", grades: { "8th": "1" } },
+      { name: "Beowulf", total: "1", grades: { "8th": "1" } },
+      { name: "The British Tradition I: Poetry, Prose, & Drama", total: "1", grades: { "11th": "1" } },
+      { name: "Frankenstein", total: "1", grades: { "11th": "1" } }
+    ]},
+    { name: "Reference & Notes", reference: true, banner: "These are informational or optional (apps, tech, planners, elective supplies, school notes). They are not counted in the shopping progress above.", items: [
+      { name: "Addition flashcards OR math app", spec: "At-home math practice", grades: { "1st": "\u2713" } },
+      { name: "Subtraction flashcards OR math app", spec: "At-home math practice", grades: { "1st": "\u2713" } },
+      { name: "Division flashcards OR app", spec: "Math Fact Masters (Apple) / Math Workout (Android)", grades: { "3rd": "\u2713" } },
+      { name: "Multiplication flashcards OR app", spec: "Math Fact Masters (Apple) / Math Workout (Android)", grades: { "3rd": "\u2713" } },
+      { name: "Planner", spec: "5th: school provides \u2014 do NOT buy; 8th & 11th: suggested", grades: { "5th": "provided", "8th": "suggested", "11th": "suggested" } },
+      { name: "Typing device (laptop or iPad w/ keyboard)", grades: { "8th": "\u2713", "11th": "\u2713" } },
+      { name: "Occasional access to Zoom", grades: { "8th": "\u2713" } },
+      { name: "Folders for chosen electives", spec: "Confirm at orientation", grades: { "11th": "varies" } },
+      { name: "Notebooks for chosen electives", spec: "Confirm at orientation", grades: { "11th": "varies" } },
+      { name: "Dress code \u2014 review", grades: { "8th": "\u2713", "11th": "\u2713" } },
+      { name: "Locker decor \u2014 magnetic only (no stickers or tape)", grades: { "8th": "\u2713", "11th": "\u2713" } },
+      { name: "Keep extra pencils & notebook paper at home", grades: { "8th": "\u2713", "11th": "\u2713" } }
+    ]}
+  ];
+
+  var STORE_KEY = "supplyListState_v1";
+  var state = loadState();
+  var activeGrades = new Set(state.filters && state.filters.length ? state.filters : GRADES);
+
+  function loadState() {
+    try {
+      var raw = localStorage.getItem(STORE_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch (e) {}
+    return { checks: {}, notes: {}, collapsed: {}, filters: [] };
+  }
+  function saveState() {
+    state.filters = (activeGrades.size === GRADES.length) ? [] : Array.from(activeGrades);
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {}
+  }
+  function slug(s) {
+    return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+  }
+
+  var listEl = document.getElementById("list");
+  var emptyMsg = document.getElementById("emptyMsg");
+
+  DATA.forEach(function (cat, ci) {
+    var catKey = slug(cat.name);
+    var section = document.createElement("section");
+    section.className = "category" + (cat.reference ? " reference" : "");
+    section.dataset.cat = catKey;
+    if (state.collapsed[catKey]) section.classList.add("collapsed");
+
+    var head = document.createElement("div");
+    head.className = "cat-head";
+    var accent = document.createElement("div");
+    accent.className = "cat-accent";
+    var title = document.createElement("h2");
+    title.className = "cat-title";
+    title.textContent = cat.name + " ";
+    var count = document.createElement("span");
+    count.className = "cat-count";
+    title.appendChild(count);
+    var chev = document.createElement("span");
+    chev.className = "chevron";
+    chev.textContent = "\u25bc";
+    head.appendChild(accent);
+    head.appendChild(title);
+    head.appendChild(chev);
+    head.addEventListener("click", function () {
+      section.classList.toggle("collapsed");
+      state.collapsed[catKey] = section.classList.contains("collapsed");
+      saveState();
+    });
+    section.appendChild(head);
+
+    var body = document.createElement("div");
+    body.className = "cat-body";
+
+    cat.items.forEach(function (item) {
+      var key = catKey + "::" + slug(item.name);
+      var gradeList = Object.keys(item.grades);
+
+      var row = document.createElement("div");
+      row.className = "item";
+      row.dataset.grades = gradeList.join(",");
+      row.dataset.ref = cat.reference ? "1" : "0";
+
+      // checkbox
+      var checkWrap = document.createElement("label");
+      checkWrap.className = "item-check";
+      var cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = !!state.checks[key];
+      if (cb.checked) row.classList.add("checked");
+      cb.addEventListener("change", function () {
+        if (cb.checked) { state.checks[key] = true; row.classList.add("checked"); }
+        else { delete state.checks[key]; row.classList.remove("checked"); }
+        saveState();
+        refresh();
+      });
+      checkWrap.appendChild(cb);
+      row.appendChild(checkWrap);
+
+      // main
+      var main = document.createElement("div");
+      main.className = "item-main";
+
+      var top = document.createElement("div");
+      top.className = "item-top";
+      if (item.total) {
+        var qty = document.createElement("span");
+        qty.className = "qty";
+        qty.textContent = item.total;
+        top.appendChild(qty);
+      }
+      var nm = document.createElement("span");
+      nm.className = "item-name";
+      nm.textContent = item.name;
+      top.appendChild(nm);
+      main.appendChild(top);
+
+      if (item.spec) {
+        var spec = document.createElement("div");
+        spec.className = "item-spec";
+        spec.textContent = item.spec;
+        main.appendChild(spec);
+      }
+
+      var tags = document.createElement("div");
+      tags.className = "tags";
+      gradeList.forEach(function (g) {
+        var t = document.createElement("span");
+        t.className = "tag g-" + g;
+        t.textContent = g;
+        tags.appendChild(t);
+      });
+      main.appendChild(tags);
+
+      if (gradeList.length > 1) {
+        var bd = document.createElement("div");
+        bd.className = "breakdown";
+        bd.textContent = gradeList.map(function (g) { return g + ": " + item.grades[g]; }).join("  \u00b7  ");
+        main.appendChild(bd);
+      }
+
+      var note = document.createElement("input");
+      note.type = "text";
+      note.className = "note-input";
+      note.placeholder = "Notes (brand, store, price\u2026)";
+      if (state.notes[key]) { note.value = state.notes[key]; note.classList.add("filled"); }
+      note.addEventListener("input", function () {
+        if (note.value.trim()) { state.notes[key] = note.value; note.classList.add("filled"); }
+        else { delete state.notes[key]; note.classList.remove("filled"); }
+        saveState();
+      });
+      main.appendChild(note);
+
+      row.appendChild(main);
+      body.appendChild(row);
+    });
+
+    section.appendChild(body);
+
+    if (cat.banner) {
+      var banner = document.createElement("div");
+      banner.className = "ref-banner";
+      banner.textContent = cat.banner;
+      section.insertBefore(banner, body);
+    }
+
+    listEl.appendChild(section);
+  });
+
+  // Filtering + progress
+  function refresh() {
+    var anyVisible = false;
+    document.querySelectorAll(".category").forEach(function (sec) {
+      var visibleInCat = 0;
+      sec.querySelectorAll(".item").forEach(function (row) {
+        var grades = row.dataset.grades.split(",");
+        var show = grades.some(function (g) { return activeGrades.has(g); });
+        row.classList.toggle("hidden", !show);
+        if (show) visibleInCat++;
+      });
+      sec.classList.toggle("hidden", visibleInCat === 0);
+      if (visibleInCat > 0) anyVisible = true;
+      var countEl = sec.querySelector(".cat-count");
+      if (countEl) countEl.textContent = "(" + visibleInCat + ")";
+    });
+    emptyMsg.classList.toggle("show", !anyVisible);
+
+    // progress = visible, non-reference items
+    var total = 0, done = 0;
+    document.querySelectorAll('.item:not(.hidden)').forEach(function (row) {
+      if (row.dataset.ref === "1") return;
+      total++;
+      if (row.classList.contains("checked")) done++;
+    });
+    document.getElementById("pDone").textContent = done;
+    document.getElementById("pTotal").textContent = total;
+    var pct = total ? Math.round((done / total) * 100) : 0;
+    document.getElementById("barFill").style.width = pct + "%";
+    document.getElementById("pPct").textContent = total ? "(" + pct + "%)" : "";
+  }
+
+  // Chip wiring
+  var allChip = document.querySelector(".chip.all");
+  var gradeChips = Array.prototype.slice.call(document.querySelectorAll(".chip[data-grade]"));
+  function syncChips() {
+    gradeChips.forEach(function (c) { c.classList.toggle("active", activeGrades.has(c.dataset.grade)); });
+    allChip.classList.toggle("active", activeGrades.size === GRADES.length);
+  }
+  allChip.addEventListener("click", function () {
+    activeGrades = new Set(GRADES);
+    syncChips(); refresh(); saveState();
+  });
+  gradeChips.forEach(function (c) {
+    c.addEventListener("click", function () {
+      var g = c.dataset.grade;
+      if (activeGrades.size === GRADES.length) {
+        // from "all" -> isolate this grade
+        activeGrades = new Set([g]);
+      } else if (activeGrades.has(g)) {
+        activeGrades.delete(g);
+        if (activeGrades.size === 0) activeGrades = new Set(GRADES);
+      } else {
+        activeGrades.add(g);
+      }
+      syncChips(); refresh(); saveState();
+    });
+  });
+
+  document.getElementById("expandAll").addEventListener("click", function () {
+    document.querySelectorAll(".category").forEach(function (s) { s.classList.remove("collapsed"); state.collapsed[s.dataset.cat] = false; });
+    saveState();
+  });
+  document.getElementById("collapseAll").addEventListener("click", function () {
+    document.querySelectorAll(".category").forEach(function (s) { s.classList.add("collapsed"); state.collapsed[s.dataset.cat] = true; });
+    saveState();
+  });
+  document.getElementById("resetAll").addEventListener("click", function () {
+    if (!confirm("Clear all check-offs, notes, and filters?")) return;
+    state = { checks: {}, notes: {}, collapsed: {}, filters: [] };
+    try { localStorage.removeItem(STORE_KEY); } catch (e) {}
+    activeGrades = new Set(GRADES);
+    document.querySelectorAll(".item").forEach(function (row) {
+      var cb = row.querySelector('input[type=checkbox]'); if (cb) cb.checked = false;
+      row.classList.remove("checked");
+      var n = row.querySelector(".note-input"); if (n) { n.value = ""; n.classList.remove("filled"); }
+    });
+    document.querySelectorAll(".category").forEach(function (s) { s.classList.remove("collapsed"); });
+    syncChips(); refresh();
+  });
+
+  syncChips();
+  refresh();
+})();
+</script>
+</body>
+</html>
